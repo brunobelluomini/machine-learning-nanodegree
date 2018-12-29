@@ -382,7 +382,7 @@ def train_predict(learner, sample_size, X_train, y_train, X_test, y_test):
     # TODO: Get the predictions on the test set(X_test),
     #       then get predictions on the first 300 training samples(X_train) using .predict()
     start = time() # Get start time
-    predictions_test = learner.predict(X_test[:300])
+    predictions_test = learner.predict(X_test)
     predictions_train = learner.predict(X_train[:300])
     end = time() # Get end time
     
@@ -393,13 +393,13 @@ def train_predict(learner, sample_size, X_train, y_train, X_test, y_test):
     results['acc_train'] = accuracy_score(y_train[:300], predictions_train[:300])
         
     # TODO: Compute accuracy on test set using accuracy_score()
-    results['acc_test'] = accuracy_score(y_test[:300], predictions_test[:300])
+    results['acc_test'] = accuracy_score(y_test, predictions_test)
     
     # TODO: Compute F-score on the the first 300 training samples using fbeta_score()
     results['f_train'] = fbeta_score(y_train[:300], predictions_train[:300], beta=0.5)
         
     # TODO: Compute F-score on the test set which is y_test
-    results['f_test'] = fbeta_score(y_test[:300], predictions_test[:300], beta=0.5)
+    results['f_test'] = fbeta_score(y_test, predictions_test, beta=0.5)
        
     # Success
     print("{} trained on {} samples.".format(learner.__class__.__name__, sample_size))
@@ -504,11 +504,11 @@ vs.evaluate(results, accuracy, fscore)
 # 
 # **Note:** Depending on the algorithm chosen and the parameter list, the following implementation may take some time to run!
 
-# In[11]:
+# In[14]:
 
 
 # TODO: Import 'GridSearchCV', 'make_scorer', and any other necessary libraries
-from sklearn.model_selection import RandomizedSearchCV
+from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import make_scorer
 
 # TODO: Initialize the classifier
@@ -529,10 +529,9 @@ parameters = {
 scorer = make_scorer(fbeta_score, beta=0.5)
 
 # TODO: Perform grid search on the classifier using 'scorer' as the scoring method using GridSearchCV()
-grid_obj = RandomizedSearchCV(
+grid_obj = GridSearchCV(
     estimator=clf, 
-    param_distributions=parameters,
-    n_iter=32,
+    param_grid=parameters,
     scoring=scorer, 
     cv=5, 
     n_jobs=-1, 
@@ -558,7 +557,7 @@ print("Final accuracy score on the testing data: {:.4f}".format(accuracy_score(y
 print("Final F-score on the testing data: {:.4f}".format(fbeta_score(y_test, best_predictions, beta = 0.5)))
 
 
-# In[12]:
+# In[15]:
 
 
 best_clf
@@ -610,7 +609,7 @@ best_clf
 #  - Train the supervised model on the entire training set.
 #  - Extract the feature importances using `'.feature_importances_'`.
 
-# In[13]:
+# In[16]:
 
 
 # TODO: Import a supervised learning model that has 'feature_importances_'
@@ -645,7 +644,7 @@ vs.feature_plot(importances, X_train, y_train)
 # ### Feature Selection
 # How does a model perform if we only use a subset of all the available features in the data? With less features required to train, the expectation is that training and prediction time is much lower — at the cost of performance metrics. From the visualization above, we see that the top five most important features contribute more than half of the importance of **all** features present in the data. This hints that we can attempt to *reduce the feature space* and simplify the information required for the model to learn. The code cell below will use the same optimized model you found earlier, and train it on the same training set *with only the top five important features*. 
 
-# In[14]:
+# In[17]:
 
 
 # Import functionality for cloning a model

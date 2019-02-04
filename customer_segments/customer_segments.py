@@ -147,7 +147,7 @@ print(score)
 # ### Visualize Feature Distributions
 # To get a better understanding of the dataset, we can construct a scatter matrix of each of the six product features present in the data. If you found that the feature you attempted to predict above is relevant for identifying a specific customer, then the scatter matrix below may not show any correlation between that feature and the others. Conversely, if you believe that feature is not relevant for identifying a specific customer, the scatter matrix might show a correlation between that feature and another feature in the data. Run the code block below to produce a scatter matrix.
 
-# In[16]:
+# In[6]:
 
 
 # Produce a scatter matrix for each pair of features in the data
@@ -156,7 +156,7 @@ print(score)
 pd.plotting.scatter_matrix(data, alpha = 1.0, figsize = (16, 10), diagonal = 'kde');
 
 
-# In[25]:
+# In[7]:
 
 
 import seaborn as sns
@@ -194,8 +194,8 @@ _ = sns.heatmap(corr, linewidths=.25, mask=mask, center=0, cmap='YlGnBu')
 #     * `Grocery` x `Milk`
 #     * `Grocery` x `Detergents_Paper`
 #     * `Detergents_paper` x `Milk`
-# 
-# As `Milk` and `Detergents_Paper` are examples of things you can find in a grocery store, their correlation could be explained 
+#     
+# `Milk` and `Detergents_Paper` are examples of things you can find in a grocery store, so one explanation is that you can find items like those together most of times in a shop cart.
 
 # ## Data Preprocessing
 # In this section, you will preprocess the data to create a better representation of customers by performing a scaling on the data and detecting (and optionally removing) outliers. Preprocessing data is often times a critical step in assuring that results you obtain from your analysis are significant and meaningful.
@@ -207,17 +207,17 @@ _ = sns.heatmap(corr, linewidths=.25, mask=mask, center=0, cmap='YlGnBu')
 #  - Assign a copy of the data to `log_data` after applying logarithmic scaling. Use the `np.log` function for this.
 #  - Assign a copy of the sample data to `log_samples` after applying logarithmic scaling. Again, use `np.log`.
 
-# In[ ]:
+# In[13]:
 
 
 # TODO: Scale the data using the natural logarithm
-log_data = None
+log_data = np.log(data)
 
 # TODO: Scale the sample data using the natural logarithm
-log_samples = None
+log_samples = np.log(data.sample(100)) # Using 100 examples arbitrarily as the exercise did not specified the sample size
 
 # Produce a scatter matrix for each pair of newly-transformed features
-pd.scatter_matrix(log_data, alpha = 0.3, figsize = (14,8), diagonal = 'kde');
+pd.plotting.scatter_matrix(log_data, alpha = 1.0, figsize = (16, 10), diagonal = 'kde');
 
 
 # ### Observation
@@ -225,7 +225,7 @@ pd.scatter_matrix(log_data, alpha = 0.3, figsize = (14,8), diagonal = 'kde');
 # 
 # Run the code below to see how the sample data has changed after having the natural logarithm applied to it.
 
-# In[ ]:
+# In[14]:
 
 
 # Display the log-transformed sample data
@@ -244,30 +244,42 @@ display(log_samples)
 # **NOTE:** If you choose to remove any outliers, ensure that the sample data does not contain any of these points!  
 # Once you have performed this implementation, the dataset will be stored in the variable `good_data`.
 
-# In[ ]:
+# In[31]:
 
+
+log_data.describe()
+
+
+# In[63]:
+
+
+all_outliers  = []
 
 # For each feature find the data points with extreme high or low values
 for feature in log_data.keys():
     
     # TODO: Calculate Q1 (25th percentile of the data) for the given feature
-    Q1 = None
+    Q1 = np.percentile(log_data[feature], 25)
     
     # TODO: Calculate Q3 (75th percentile of the data) for the given feature
-    Q3 = None
+    Q3 = np.percentile(log_data[feature], 75)
     
     # TODO: Use the interquartile range to calculate an outlier step (1.5 times the interquartile range)
-    step = None
+    step = 1.5 * (Q3 - Q1)
     
     # Display the outliers
     print("Data points considered outliers for the feature '{}':".format(feature))
-    display(log_data[~((log_data[feature] >= Q1 - step) & (log_data[feature] <= Q3 + step))])
+    outliers_mask = ~((log_data[feature] >= Q1 - step) & (log_data[feature] <= Q3 + step))
+    all_outliers.append(list(log_data[outliers_mask].index))
+    display(log_data[outliers_mask])
     
 # OPTIONAL: Select the indices for data points you wish to remove
-outliers  = []
+flat_outliers = [item for sublist in all_outliers for item in sublist]
+outliers_in_more_than_one_category = [x for x in flat_outliers if flat_outliers.count(x) > 1]
 
 # Remove the outliers, if any were specified
-good_data = log_data.drop(log_data.index[outliers]).reset_index(drop = True)
+print(f'Removing outliers in more than one category: {outliers_in_more_than_one_category}')
+good_data = log_data.drop(log_data.index[outliers_in_more_than_one_category]).reset_index(drop = True)
 
 
 # ### Question 4
@@ -278,6 +290,7 @@ good_data = log_data.drop(log_data.index[outliers]).reset_index(drop = True)
 # ** Hint: ** If you have datapoints that are outliers in multiple categories think about why that may be and if they warrant removal. Also note how k-means is affected by outliers and whether or not this plays a factor in your analysis of whether or not to remove them.
 
 # **Answer:**
+# There are some datapoints considered outliers for more than one feature. Here are their indexes: `65`, `75`, 
 
 # ## Feature Transformation
 # In this section you will use principal component analysis (PCA) to draw conclusions about the underlying structure of the wholesale customer data. Since using PCA on a dataset calculates the dimensions which best maximize variance, we will find which compound combinations of features best describe customers.

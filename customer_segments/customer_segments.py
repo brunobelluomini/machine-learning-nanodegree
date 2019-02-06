@@ -90,6 +90,8 @@ display(samples)
 # 
 # The customer #0 is a way below average on `Fresh` category e way above average on `Grocery` one, thus it can represent someone in a category such as `supermarket`.
 # The second customer, #1, 
+# 
+# [Falta fazer]
 
 # ### Implementation: Feature Relevance
 # One interesting thought to consider is if one (or more) of the six product categories is actually relevant for understanding customer purchasing. That is to say, is it possible to determine whether customers purchasing some amount of one category of products will necessarily purchase some proportional amount of another category of products? We can make this determination quite easily by training a supervised regression learner on a subset of the data with one feature removed, and then score how well that model can predict the removed feature.
@@ -207,14 +209,14 @@ _ = sns.heatmap(corr, linewidths=.25, mask=mask, center=0, cmap='YlGnBu')
 #  - Assign a copy of the data to `log_data` after applying logarithmic scaling. Use the `np.log` function for this.
 #  - Assign a copy of the sample data to `log_samples` after applying logarithmic scaling. Again, use `np.log`.
 
-# In[13]:
+# In[36]:
 
 
 # TODO: Scale the data using the natural logarithm
 log_data = np.log(data)
 
 # TODO: Scale the sample data using the natural logarithm
-log_samples = np.log(data.sample(100)) # Using 100 examples arbitrarily as the exercise did not specified the sample size
+log_samples = np.log(data.sample(10)) # Using 100 examples arbitrarily as the exercise did not specified the sample size
 
 # Produce a scatter matrix for each pair of newly-transformed features
 pd.plotting.scatter_matrix(log_data, alpha = 1.0, figsize = (16, 10), diagonal = 'kde');
@@ -225,7 +227,7 @@ pd.plotting.scatter_matrix(log_data, alpha = 1.0, figsize = (16, 10), diagonal =
 # 
 # Run the code below to see how the sample data has changed after having the natural logarithm applied to it.
 
-# In[14]:
+# In[37]:
 
 
 # Display the log-transformed sample data
@@ -244,13 +246,13 @@ display(log_samples)
 # **NOTE:** If you choose to remove any outliers, ensure that the sample data does not contain any of these points!  
 # Once you have performed this implementation, the dataset will be stored in the variable `good_data`.
 
-# In[31]:
+# In[38]:
 
 
 log_data.describe()
 
 
-# In[63]:
+# In[39]:
 
 
 all_outliers  = []
@@ -275,7 +277,7 @@ for feature in log_data.keys():
     
 # OPTIONAL: Select the indices for data points you wish to remove
 flat_outliers = [item for sublist in all_outliers for item in sublist]
-outliers_in_more_than_one_category = [x for x in flat_outliers if flat_outliers.count(x) > 1]
+outliers_in_more_than_one_category = np.unique(np.array([x for x in flat_outliers if flat_outliers.count(x) > 1]))
 
 # Remove the outliers, if any were specified
 print(f'Removing outliers in more than one category: {outliers_in_more_than_one_category}')
@@ -290,7 +292,8 @@ good_data = log_data.drop(log_data.index[outliers_in_more_than_one_category]).re
 # ** Hint: ** If you have datapoints that are outliers in multiple categories think about why that may be and if they warrant removal. Also note how k-means is affected by outliers and whether or not this plays a factor in your analysis of whether or not to remove them.
 
 # **Answer:**
-# There are some datapoints considered outliers for more than one feature. Here are their indexes: `65`, `75`, 
+# There are some datapoints considered outliers for more than one feature. Here are their indexes: `65`, `66`, `75`, `128` and `154`. 
+# They will be removed as could probably be noisy data or extreme outliers.
 
 # ## Feature Transformation
 # In this section you will use principal component analysis (PCA) to draw conclusions about the underlying structure of the wholesale customer data. Since using PCA on a dataset calculates the dimensions which best maximize variance, we will find which compound combinations of features best describe customers.
@@ -303,14 +306,16 @@ good_data = log_data.drop(log_data.index[outliers_in_more_than_one_category]).re
 #  - Import `sklearn.decomposition.PCA` and assign the results of fitting PCA in six dimensions with `good_data` to `pca`.
 #  - Apply a PCA transformation of `log_samples` using `pca.transform`, and assign the results to `pca_samples`.
 
-# In[ ]:
+# In[40]:
 
+
+from sklearn.decomposition import PCA
 
 # TODO: Apply PCA by fitting the good data with the same number of dimensions as features
-pca = None
+pca = PCA(n_components=6, random_state=42).fit(good_data)
 
 # TODO: Transform log_samples using the PCA fit above
-pca_samples = None
+pca_samples = pca.transform(log_samples)
 
 # Generate PCA results plot
 pca_results = vs.pca_results(good_data, pca)
@@ -325,11 +330,16 @@ pca_results = vs.pca_results(good_data, pca)
 # **Hint:** A positive increase in a specific dimension corresponds with an *increase* of the *positive-weighted* features and a *decrease* of the *negative-weighted* features. The rate of increase or decrease is based on the individual feature weights.
 
 # **Answer:**
+# As the first principal component explains `0.4430` of the variance and the second one `0.2638` then the total of the first two principal components explains `0.7068` of the total variance.
+# 
+# The first four principal components explains `0.9311` of the total variance.
+# 
+# [Falta aqui]
 
 # ### Observation
 # Run the code below to see how the log-transformed sample data has changed after having a PCA transformation applied to it in six dimensions. Observe the numerical value for the first four dimensions of the sample points. Consider if this is consistent with your initial interpretation of the sample points.
 
-# In[ ]:
+# In[41]:
 
 
 # Display sample log-data after having a PCA transformation applied
@@ -344,17 +354,17 @@ display(pd.DataFrame(np.round(pca_samples, 4), columns = pca_results.index.value
 #  - Apply a PCA transformation of `good_data` using `pca.transform`, and assign the results to `reduced_data`.
 #  - Apply a PCA transformation of `log_samples` using `pca.transform`, and assign the results to `pca_samples`.
 
-# In[ ]:
+# In[42]:
 
 
 # TODO: Apply PCA by fitting the good data with only two dimensions
-pca = None
+pca = PCA(n_components=2, random_state=42).fit(good_data)
 
 # TODO: Transform the good data using the PCA fit above
-reduced_data = None
+reduced_data = pca.transform(good_data)
 
 # TODO: Transform log_samples using the PCA fit above
-pca_samples = None
+pca_samples = pca.transform(log_samples)
 
 # Create a DataFrame for the reduced data
 reduced_data = pd.DataFrame(reduced_data, columns = ['Dimension 1', 'Dimension 2'])
@@ -363,7 +373,7 @@ reduced_data = pd.DataFrame(reduced_data, columns = ['Dimension 1', 'Dimension 2
 # ### Observation
 # Run the code below to see how the log-transformed sample data has changed after having a PCA transformation applied to it using only two dimensions. Observe how the values for the first two dimensions remains unchanged when compared to a PCA transformation in six dimensions.
 
-# In[ ]:
+# In[43]:
 
 
 # Display sample log-data after applying PCA transformation in two dimensions
@@ -375,7 +385,7 @@ display(pd.DataFrame(np.round(pca_samples, 4), columns = ['Dimension 1', 'Dimens
 # 
 # Run the code cell below to produce a biplot of the reduced-dimension data.
 
-# In[ ]:
+# In[44]:
 
 
 # Create a biplot
@@ -387,6 +397,8 @@ vs.biplot(good_data, reduced_data, pca)
 # Once we have the original feature projections (in red), it is easier to interpret the relative position of each data point in the scatterplot. For instance, a point the lower right corner of the figure will likely correspond to a customer that spends a lot on `'Milk'`, `'Grocery'` and `'Detergents_Paper'`, but not so much on the other product categories. 
 # 
 # From the biplot, which of the original features are most strongly correlated with the first component? What about those that are associated with the second component? Do these observations agree with the pca_results plot you obtained earlier?
+
+# **Answer**: 
 
 # ## Clustering
 # 
@@ -401,6 +413,17 @@ vs.biplot(good_data, reduced_data, pca)
 # ** Hint: ** Think about the differences between hard clustering and soft clustering and which would be appropriate for our dataset.
 
 # **Answer:**
+# 
+# Some advantages on using a *K-Means clustering*:
+#     * Simple to understand and easy to implement
+#     * It's a fast algorithm
+#     * It does a very good job on grouping spherical shape clusters
+#     
+# Some advantages on using a *Gaussian Mixture Model (GMM)* clustering:
+#     * Each datapoint result in a probability to result in each cluster found, giving more flexibility in solving certain problems where categories can overlap.
+#     * More robust to outliers as the algorithm doesn't use Elucidian distance
+#     
+# Giving that the dataset is somewhat sparsed without some spherical shape nodes and contains some outliers or distant points, I will use the **Gaussian Mixture Model** to cluster.
 
 # ### Implementation: Creating Clusters
 # Depending on the problem, the number of clusters that you expect to be in the data may already be known. When the number of clusters is not known *a priori*, there is no guarantee that a given number of clusters best segments the data, since it is unclear what structure exists in the data — if any. However, we can quantify the "goodness" of a clustering by calculating each data point's *silhouette coefficient*. The [silhouette coefficient](http://scikit-learn.org/stable/modules/generated/sklearn.metrics.silhouette_score.html) for a data point measures how similar it is to its assigned cluster from -1 (dissimilar) to 1 (similar). Calculating the *mean* silhouette coefficient provides for a simple scoring method of a given clustering.
@@ -413,23 +436,26 @@ vs.biplot(good_data, reduced_data, pca)
 #  - Import `sklearn.metrics.silhouette_score` and calculate the silhouette score of `reduced_data` against `preds`.
 #    - Assign the silhouette score to `score` and print the result.
 
-# In[ ]:
+# In[88]:
 
+
+from sklearn.mixture import GaussianMixture
+from sklearn.metrics import silhouette_score
 
 # TODO: Apply your clustering algorithm of choice to the reduced data 
-clusterer = None
+clusterer = GaussianMixture(n_components=2, random_state=42).fit(reduced_data)
 
 # TODO: Predict the cluster for each data point
-preds = None
+preds = clusterer.predict(reduced_data)
 
 # TODO: Find the cluster centers
-centers = None
+centers = clusterer.means_
 
 # TODO: Predict the cluster for each transformed sample data point
-sample_preds = None
+sample_preds = clusterer.predict(pca_samples)
 
 # TODO: Calculate the mean silhouette coefficient for the number of clusters chosen
-score = None
+score = silhouette_score(reduced_data, preds)
 
 
 # ### Question 7
@@ -437,12 +463,38 @@ score = None
 # * Report the silhouette score for several cluster numbers you tried. 
 # * Of these, which number of clusters has the best silhouette score?
 
+# In[84]:
+
+
+silhouette_scores = []
+n_clusters = list(range(2, 11))
+
+for n_cluster in n_clusters:
+    clusterer = GaussianMixture(n_components=n_cluster, random_state=42).fit(reduced_data)
+    preds = clusterer.predict(reduced_data)
+    silhouette_scores.append(silhouette_score(reduced_data, preds))
+
+
+# In[86]:
+
+
+plt.figure(figsize=(16, 6))
+plt.plot(n_clusters, silhouette_scores)
+plt.xlabel('Number of clusters')
+plt.ylabel('Silhouette Score')
+plt.title('Silhouette Score by Number of Clusters using Gaussian Mixture Model')
+plt.grid(True)
+
+plt.show()
+
+
 # **Answer:**
+# The best silhouette score was resulted with 2 clusters.
 
 # ### Cluster Visualization
 # Once you've chosen the optimal number of clusters for your clustering algorithm using the scoring metric above, you can now visualize the results by executing the code block below. Note that, for experimentation purposes, you are welcome to adjust the number of clusters for your clustering algorithm to see various visualizations. The final visualization provided should, however, correspond with the optimal number of clusters. 
 
-# In[ ]:
+# In[89]:
 
 
 # Display the results of the clustering from implementation

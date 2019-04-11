@@ -175,34 +175,45 @@ print(score)
 # In[7]:
 
 
-r2_scores = []
+np.random.randint(low=0, high=50, size=10)
+
+
+# In[8]:
+
+
+r2_median_scores = []
 
 features_to_predict = ['Fresh', 'Milk', 'Grocery', 'Frozen', 'Detergents_Paper', 'Delicatessen']
 
 for feature_to_predict in features_to_predict:
+    r2_scores = []
     new_data = data.drop(columns=[feature_to_predict])
     
-    X_train, X_test, y_train, y_test = train_test_split(
-        new_data, 
-        data[feature_to_predict], 
-        test_size=0.25, 
-        random_state=42
-    )
+    # Calculating R² score for multiple samples with different random statess
+    random_states = np.random.randint(0, 100, 100)
+    for random_state in random_states:
+        X_train, X_test, y_train, y_test = train_test_split(
+            new_data, 
+            data[feature_to_predict], 
+            test_size=0.25, 
+            random_state=random_state
+        )
 
-    regressor = DecisionTreeRegressor(random_state=42).fit(X_train, y_train)
-    r2_scores.append(regressor.score(X_test, y_test))
+        regressor = DecisionTreeRegressor(random_state=42).fit(X_train, y_train)
+        r2_scores.append(regressor.score(X_test, y_test))
+    r2_median_scores.append(np.median(r2_scores))
 
-pd.DataFrame(r2_scores, index=features_to_predict, columns=['R2 Score']).T
+pd.DataFrame(r2_median_scores, index=features_to_predict, columns=['R2 Score']).T
 
 
-# According to the results, the only feature which we could be predicted (therefore the most likely to be removed) is the `Grocery` one, which has obtained a quite high `R^2` score of almost 0.70. 
+# According to the results, there are two features which we could be predicted (therefore the most likely to be removed): `Grocery` and `Detergents_Paper`, which have obtained a quite high `R^2` score of almost 0.70. 
 # 
 # All the other features either obtained a low or negative `R^2` value, thus they are not predictable with the other ones, and so cannot be removed.
 
 # ### Visualize Feature Distributions
 # To get a better understanding of the dataset, we can construct a scatter matrix of each of the six product features present in the data. If you found that the feature you attempted to predict above is relevant for identifying a specific customer, then the scatter matrix below may not show any correlation between that feature and the others. Conversely, if you believe that feature is not relevant for identifying a specific customer, the scatter matrix might show a correlation between that feature and another feature in the data. Run the code block below to produce a scatter matrix.
 
-# In[8]:
+# In[9]:
 
 
 # Produce a scatter matrix for each pair of features in the data
@@ -211,7 +222,7 @@ pd.DataFrame(r2_scores, index=features_to_predict, columns=['R2 Score']).T
 pd.plotting.scatter_matrix(data, alpha = 1.0, figsize = (16, 10), diagonal = 'kde');
 
 
-# In[9]:
+# In[10]:
 
 
 # calculate the correlation matrix
@@ -239,7 +250,7 @@ _ = sns.heatmap(corr, linewidths=.25, mask=mask, center=0.5, cmap='RdBu_r')
 
 # **Answer:**
 # 
-# All features are not _normal distributed_ as most of data is highly concentrated around 25% of the spread of values (_i.e._ the range from _min_ and _max_ values) and the frequency start dropping after. There is some outliers in all features. A good idea for a feature engineering is to apply some math _log_ scale (like using numpy's [`log10` method](https://docs.scipy.org/doc/numpy/reference/generated/numpy.log10.html)) to transform them into something more like a normal distribution.
+# All features are _log-normal and right-skewed distributed_ as most of data is highly concentrated around 25% of the spread of values (_i.e._ the range from _min_ and _max_ values) and the frequency start dropping after. There is some outliers in all features. A good idea for a feature engineering is to apply some math _log_ scale (like using numpy's [`log10` method](https://docs.scipy.org/doc/numpy/reference/generated/numpy.log10.html)) to transform them into something more like a normal distribution.
 # 
 # According to the heatmap above the most correlated pair of features is `Grocery` and `Detergents_Paper` with a correlation of almost 1.0. Notice that `Milk` also has a mid-correlation with those (~0.60).
 #     
@@ -257,7 +268,7 @@ _ = sns.heatmap(corr, linewidths=.25, mask=mask, center=0.5, cmap='RdBu_r')
 #  - Assign a copy of the data to `log_data` after applying logarithmic scaling. Use the `np.log` function for this.
 #  - Assign a copy of the sample data to `log_samples` after applying logarithmic scaling. Again, use `np.log`.
 
-# In[10]:
+# In[11]:
 
 
 # TODO: Scale the data using the natural logarithm
@@ -276,7 +287,7 @@ pd.plotting.scatter_matrix(log_data, alpha = 1.0, figsize = (16, 10), diagonal =
 # 
 # Run the code below to see how the sample data has changed after having the natural logarithm applied to it.
 
-# In[11]:
+# In[12]:
 
 
 # Display the log-transformed sample data
@@ -295,16 +306,30 @@ display(log_samples)
 # **NOTE:** If you choose to remove any outliers, ensure that the sample data does not contain any of these points!  
 # Once you have performed this implementation, the dataset will be stored in the variable `good_data`.
 
-# In[12]:
+# In[13]:
 
 
 log_data.describe()
 
 
-# In[13]:
+# In[14]:
+
+
+a = np.array([1, 2, 3])
+b = np.array([1, 4, 5])
+
+
+# In[15]:
+
+
+np.unique(np.append(a, b))
+
+
+# In[16]:
 
 
 all_outliers  = []
+extreme_outliers = []
 
 # For each feature find the data points with extreme high or low values
 for feature in log_data.keys():
@@ -317,12 +342,21 @@ for feature in log_data.keys():
     
     # TODO: Use the interquartile range to calculate an outlier step (1.5 times the interquartile range)
     step = 1.5 * (Q3 - Q1)
+    extreme_outlier_step = 3 * (Q3 - Q1)
     
     # Display the outliers
     print("Data points considered outliers for the feature '{}':".format(feature))
-    outliers_mask = ~((log_data[feature] >= Q1 - step) & (log_data[feature] <= Q3 + step))
+    outliers_upper_threshold = log_data[feature] >= Q3 + step
+    outliers_lower_threshold = log_data[feature] <= Q1 - step
+    outliers_mask = (outliers_upper_threshold) | (outliers_lower_threshold)
     all_outliers.append(list(log_data[outliers_mask].index))
     display(log_data[outliers_mask])
+    
+    # Extreme outliers which will be removed later
+    extreme_outliers_upper_threshold = log_data[feature] >= Q3 + extreme_outlier_step
+    extreme_outliers_lower_threshold = log_data[feature] <= Q1 - extreme_outlier_step
+    extreme_outliers_mask = (extreme_outliers_upper_threshold) | (extreme_outliers_lower_threshold)
+    extreme_outliers.append(list(log_data[extreme_outliers_mask].index))
     
 # OPTIONAL: Select the indices for data points you wish to remove
 flat_outliers = [item for sublist in all_outliers for item in sublist]
@@ -333,9 +367,15 @@ outliers_in_more_than_one_category = np.unique(
 print(f'Outliers in more than one category: {outliers_in_more_than_one_category}')
 
 # Remove the outliers, if any were specified
-good_data = log_data.drop(log_data.index[outliers_mask]).reset_index(drop = True)
+extreme_outliers_idx = np.array([idx for feature in extreme_outliers for idx in feature])
+outliers_idx = np.unique(np.append(extreme_outliers_idx, outliers_in_more_than_one_category))
+
+good_data = log_data.drop(
+    log_data.index[outliers_idx]
+).reset_index(drop=True)
 number_of_outliers = log_data.shape[0] - good_data.shape[0]
-print(f'Removing outliers using the Tukey rule of outlier removal: {number_of_outliers} rows removed')
+
+print(f'Removing outliers: {number_of_outliers} rows removed')
 
 
 # ### Question 4
@@ -346,9 +386,10 @@ print(f'Removing outliers using the Tukey rule of outlier removal: {number_of_ou
 # ** Hint: ** If you have datapoints that are outliers in multiple categories think about why that may be and if they warrant removal. Also note how k-means is affected by outliers and whether or not this plays a factor in your analysis of whether or not to remove them.
 
 # **Answer:**
-# There are some datapoints considered outliers for more than one feature. Here are their indexes: `65`, `66`, `75`, `128` and `154`.
+# There are some datapoints considered outliers for more than one feature. Here are their indexes: `65`, `66`, `75`, `128` and `154`. They need to be removed as some clustering algorithm are way sensitive to outliers, such as K-Means and datapoints with outliers in more than one category could lead to misconclusions.
 # 
-# We will use the Tukey's Rule of outlier removal (1.5 * IQR) to remove outliers, resulting in 14 rows removed.
+# 
+# We will also remove extreme outliers out of the range of 3 * IQR, resulting in 11 removed rows.
 
 # ## Feature Transformation
 # In this section you will use principal component analysis (PCA) to draw conclusions about the underlying structure of the wholesale customer data. Since using PCA on a dataset calculates the dimensions which best maximize variance, we will find which compound combinations of features best describe customers.
@@ -361,7 +402,7 @@ print(f'Removing outliers using the Tukey rule of outlier removal: {number_of_ou
 #  - Import `sklearn.decomposition.PCA` and assign the results of fitting PCA in six dimensions with `good_data` to `pca`.
 #  - Apply a PCA transformation of `log_samples` using `pca.transform`, and assign the results to `pca_samples`.
 
-# In[14]:
+# In[17]:
 
 
 from sklearn.decomposition import PCA
@@ -384,7 +425,7 @@ pca_results = vs.pca_results(good_data, pca)
 # 
 # **Hint:** A positive increase in a specific dimension corresponds with an *increase* of the *positive-weighted* features and a *decrease* of the *negative-weighted* features. The rate of increase or decrease is based on the individual feature weights.
 
-# In[15]:
+# In[18]:
 
 
 print(pca_results['Explained Variance'].cumsum())
@@ -407,7 +448,7 @@ print(pca_results['Explained Variance'].cumsum())
 # ### Observation
 # Run the code below to see how the log-transformed sample data has changed after having a PCA transformation applied to it in six dimensions. Observe the numerical value for the first four dimensions of the sample points. Consider if this is consistent with your initial interpretation of the sample points.
 
-# In[16]:
+# In[19]:
 
 
 # Display sample log-data after having a PCA transformation applied
@@ -422,7 +463,7 @@ display(pd.DataFrame(np.round(pca_samples, 4), columns = pca_results.index.value
 #  - Apply a PCA transformation of `good_data` using `pca.transform`, and assign the results to `reduced_data`.
 #  - Apply a PCA transformation of `log_samples` using `pca.transform`, and assign the results to `pca_samples`.
 
-# In[17]:
+# In[20]:
 
 
 # TODO: Apply PCA by fitting the good data with only two dimensions
@@ -441,7 +482,7 @@ reduced_data = pd.DataFrame(reduced_data, columns = ['Dimension 1', 'Dimension 2
 # ### Observation
 # Run the code below to see how the log-transformed sample data has changed after having a PCA transformation applied to it using only two dimensions. Observe how the values for the first two dimensions remains unchanged when compared to a PCA transformation in six dimensions.
 
-# In[18]:
+# In[21]:
 
 
 # Display sample log-data after applying PCA transformation in two dimensions
@@ -453,7 +494,7 @@ display(pd.DataFrame(np.round(pca_samples, 4), columns = ['Dimension 1', 'Dimens
 # 
 # Run the code cell below to produce a biplot of the reduced-dimension data.
 
-# In[19]:
+# In[22]:
 
 
 # Create a biplot
@@ -506,7 +547,7 @@ vs.biplot(good_data, reduced_data, pca)
 #  - Import `sklearn.metrics.silhouette_score` and calculate the silhouette score of `reduced_data` against `preds`.
 #    - Assign the silhouette score to `score` and print the result.
 
-# In[20]:
+# In[23]:
 
 
 from sklearn.mixture import GaussianMixture
@@ -533,7 +574,7 @@ score = silhouette_score(reduced_data, preds_with_two_components)
 # * Report the silhouette score for several cluster numbers you tried. 
 # * Of these, which number of clusters has the best silhouette score?
 
-# In[21]:
+# In[24]:
 
 
 silhouette_scores = []
@@ -545,7 +586,7 @@ for n_cluster in n_clusters:
     silhouette_scores.append(silhouette_score(reduced_data, preds))
 
 
-# In[22]:
+# In[25]:
 
 
 plt.figure(figsize=(16, 6))
@@ -564,7 +605,7 @@ plt.show()
 # ### Cluster Visualization
 # Once you've chosen the optimal number of clusters for your clustering algorithm using the scoring metric above, you can now visualize the results by executing the code block below. Note that, for experimentation purposes, you are welcome to adjust the number of clusters for your clustering algorithm to see various visualizations. The final visualization provided should, however, correspond with the optimal number of clusters. 
 
-# In[23]:
+# In[26]:
 
 
 # Display the results of the clustering from implementation
@@ -579,7 +620,7 @@ vs.cluster_results(reduced_data, preds_with_two_components, centers, pca_samples
 #  - Apply the inverse function of `np.log` to `log_centers` using `np.exp` and assign the true centers to `true_centers`.
 # 
 
-# In[24]:
+# In[27]:
 
 
 # TODO: Inverse transform the centers
@@ -605,7 +646,7 @@ display(true_centers)
 
 # First let's recap both mean and standard deviation values of all features:
 
-# In[25]:
+# In[28]:
 
 
 display(data.describe().loc[['mean', 'std'], :])
@@ -624,14 +665,14 @@ display(data.describe().loc[['mean', 'std'], :])
 # 
 # Run the code block below to find which cluster each sample point is predicted to be.
 
-# In[26]:
+# In[29]:
 
 
 data_samples['cluster_pred'] = sample_preds
 data_samples
 
 
-# In[27]:
+# In[30]:
 
 
 # Display the predictions
@@ -709,7 +750,7 @@ for i, pred in enumerate(sample_preds):
 # 
 # Run the code block below to see how each data point is labeled either `'HoReCa'` (Hotel/Restaurant/Cafe) or `'Retail'` the reduced space. In addition, you will find the sample points are circled in the plot, which will identify their labeling.
 
-# In[28]:
+# In[31]:
 
 
 # Display the clustering results based on 'Channel' data
